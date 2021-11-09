@@ -28,7 +28,7 @@ def main(argv):
         
     teamList = updateGameRange(teamList, int(argv[0]), int(argv[1]))
 
-    convertJsonToCSV(teamList)
+    convertJsonToCSV(teamList["teams"])
 
     #update teamList and write to teamList.json
     teamListInfo = json.dumps(teamList, indent=4)
