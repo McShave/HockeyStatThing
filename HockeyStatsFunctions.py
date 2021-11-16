@@ -35,16 +35,18 @@ def updateGameRange(teamList, gameID1, gameID2):
         gameStatsInfo = urllib.request.urlopen(gameURL).read()
         gameStats = json.loads(gameStatsInfo)
     
-        teamA_Name = str(gameStats["teams"]["home"]["team"]["name"])
-        teamB_Name = str(gameStats["teams"]["away"]["team"]["name"])
+        teamA_name = gameStats["teams"]["home"]["team"]["name"]
+        teamB_name = gameStats["teams"]["away"]["team"]["name"]
         
-        teamList["teams"] = updateGamePlayed(gameStats, teamList["teams"], teamA_Name, teamB_Name)
+        teamA = teamList["teams"][teamA_name]
+        teamB = teamList["teams"][teamB_name]
         
-        teamList["teams"] = updatePowerRankings(gameStats["teams"], teamList["teams"], teamA_Name, teamB_Name)
+        teamA, teamB = updateGamePlayed(gameStats, teamA, teamB)
+        teamA, teamB = updatePowerRankings(gameStats["teams"], teamA, teamB)
 
     return teamList
     
-def updateGamePlayed(gameStats, teamList, teamA_Name, teamB_Name):
+def updateGamePlayed(gameStats, teamA, teamB):
 
     if gameStats["currentPeriod"] < 3:
         print("game between {0} {1} on {2} did not finish.".format(teamList[teamB_Name]["name"],\
@@ -53,97 +55,104 @@ def updateGamePlayed(gameStats, teamList, teamA_Name, teamB_Name):
             
     if gameStats["currentPeriod"] == 3:
         if gameStats["teams"]["home"]["goals"] > gameStats["teams"]["away"]["goals"]:
-            teamList[teamA_Name]["W"] += 1
-            teamList[teamA_Name]["Points"] += 2
-            teamList[teamB_Name]["L"] += 1
+            teamA["W"] += 1
+            teamA["Points"] += 2
+            teamB["L"] += 1
         else:
-            teamList[teamB_Name]["W"] += 1
-            teamList[teamB_Name]["Points"] += 2
-            teamList[teamA_Name]["L"] += 1
+            teamB["W"] += 1
+            teamB["Points"] += 2
+            teamA["L"] += 1
             
     elif gameStats["currentPeriod"] > 3:
         if gameStats["teams"]["home"]["goals"] > gameStats["teams"]["away"]["goals"]:
-            teamList[teamA_Name]["W"] += 1
-            teamList[teamA_Name]["Points"] += 2
-            teamList[teamB_Name]["L"] += 1
-            teamList[teamB_Name]["Points"] += 1
+            teamA["W"] += 1
+            teamA["Points"] += 2
+            teamB["L"] += 1
+            teamB["Points"] += 1
         else:
-            teamList[teamB_Name]["W"] += 1
-            teamList[teamB_Name]["Points"] += 2
-            teamList[teamA_Name]["L"] += 1
-            teamList[teamB_Name]["Points"] += 1
+            teamB["W"] += 1
+            teamB["Points"] += 2
+            teamA["L"] += 1
+            teamA["Points"] += 1
     
-    teamList[teamA_Name]["GP"] += 1
-    teamList[teamB_Name]["GP"] += 1  
+    teamA["GP"] += 1
+    teamB["GP"] += 1  
     
-    return teamList
+    return teamA, teamB
 
 
 
-def updatePowerRankings(gameInfoTeams, teamList, teamA_Name, teamB_Name):
+def updatePowerRankings(gameInfoTeams, teamA, teamB):
+
+    teamA, teamB = addToPowerList(gameInfoTeams, teamA, teamB)
+
+
+    teamA = updatePowerNums(teamA)
+    teamB = updatePowerNums(teamB)
+
+    return (teamA, teamB)
+    
+
+def addToPowerList(gameInfoTeams, teamA, teamB):
 
      game_TeamA_gf = gameInfoTeams["home"]["goals"]
      game_TeamA_sf = gameInfoTeams["home"]["shotsOnGoal"]
      game_TeamB_gf = gameInfoTeams["away"]["goals"]
      game_TeamB_sf = gameInfoTeams["away"]["shotsOnGoal"]
 
-     teamA_Modifier = (teamList[teamB_Name]["offPowNum"]*teamList[teamA_Name]["defPowNum"])/\
-        (teamList[teamA_Name]["offPowNum"]*teamList[teamB_Name]["defPowNum"])
-     teamB_Modifier = (teamList[teamA_Name]["offPowNum"]*teamList[teamB_Name]["defPowNum"])/\
-        (teamList[teamB_Name]["offPowNum"]*teamList[teamA_Name]["defPowNum"])
+     # teamA_Modifier = (teamB["offPowNum"]*teamA["defPowNum"])/\
+        # (teamA["offPowNum"]*teamB["defPowNum"])
+     # teamB_Modifier = (teamA["offPowNum"]*teamB["defPowNum"])/\
+        # (teamB["offPowNum"]*teamA["defPowNum"])
 
-     teamList[teamA_Name]["offPowList"].append(round((game_TeamA_gf/game_TeamA_sf)*teamA_Modifier, 4))
-     teamList[teamA_Name]["defPowList"].append(round((game_TeamB_gf/game_TeamB_sf)*teamA_Modifier, 4))
+     teamA["offPowList"].append(round((game_TeamA_gf/game_TeamA_sf), 4))
+     teamA["defPowList"].append(round((game_TeamB_gf/game_TeamB_sf), 4))
 
-     teamList[teamB_Name]["offPowList"].append(round((game_TeamB_gf/game_TeamB_sf)*teamB_Modifier, 4))
-     teamList[teamB_Name]["defPowList"].append(round((game_TeamA_gf/game_TeamA_sf)*teamB_Modifier, 4))
+     teamB["offPowList"].append(round((game_TeamB_gf/game_TeamB_sf), 4))
+     teamB["defPowList"].append(round((game_TeamA_gf/game_TeamA_sf), 4))
 
 
-     teamList[teamA_Name] = updateTeamPower(teamList[teamA_Name])
-     teamList[teamB_Name] = updateTeamPower(teamList[teamB_Name])
+     teamA = updatePowerNums(teamA)
+     teamB = updatePowerNums(teamB)
 
-     return (teamList)
+     return teamA, teamB
     
-    
-def updateTeamPower(team):
+def updatePowerNums(team):
 
     avg = 0
     for game in team["offPowList"]:
           avg += game
-    team["offPowNum"] = round(avg/team["GP"], 4)
+    team["offPowNum"] = avg/team["GP"]
 
     avg = 0
     for game in team["defPowList"]:
           avg += game
-    team["defPowNum"] = round(avg/team["GP"], 4)
+    team["defPowNum"] = avg/team["GP"]
 
-    team["totalPow"] = round(team["offPowNum"]/team["defPowNum"], 4)
-    
+    team["totalPow"] = team["offPowNum"]/team["defPowNum"]
     
     return team
     
     
-def convertJsonToCSV(teamList):
+def convertJsonToCSV(filename, teamList):
 
-    teamListCSV = open("teamList.csv", "w")    
+    with open(filename, "w", newline = '') as teamListCSV:    
         
-    # create the csv writer object
-    csv_writer = csv.writer(teamListCSV)
-     
-    # Counter variable used for writing
-    # headers to the CSV file
-    count = 0
-     
-    for team in teamList:
-        if count == 0:
-     
-            # Writing headers of CSV file
-            header = teamList[team].keys()
-            csv_writer.writerow(header)
-            count += 1
-     
-        else:
-            # Writing data of CSV file
-            csv_writer.writerow(teamList[team].values())
-    
-    teamListCSV.close()
+        # create the csv writer object
+        csv_writer = csv.writer(teamListCSV)
+         
+        # Counter variable used for writing
+        # headers to the CSV file
+        count = 0
+         
+        for team in teamList:
+            if count == 0:
+         
+                # Writing headers of CSV file
+                header = teamList[team].keys()
+                csv_writer.writerow(header)
+                count += 1
+         
+            else:
+                # Writing data of CSV file
+                csv_writer.writerow(teamList[team].values())

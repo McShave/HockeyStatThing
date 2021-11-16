@@ -9,6 +9,9 @@ from HockeyStatsFunctions import convertJsonToCSV
 
 def main(argv):
 
+    jsonFileName = "teamList.json"
+    csvFileName = "teamList.csv"
+
     # if teamList.json does not exist, create new file and teamList
     if not os.path.isfile("teamList.json") or os.path.getsize("teamList.json") == 0:
         print("Creating new json file")
@@ -28,7 +31,7 @@ def main(argv):
         
     teamList = updateGameRange(teamList, int(argv[0]), int(argv[1]))
 
-    convertJsonToCSV(teamList["teams"])
+    convertJsonToCSV(csvFileName, teamList["teams"])
 
     #update teamList and write to teamList.json
     teamListInfo = json.dumps(teamList, indent=4)

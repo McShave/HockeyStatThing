@@ -14,8 +14,10 @@ Future Plans:
 
 - better display option than a .csv file, maybe web app integration (with flask or other similar library)
 
-- better sorting methods
+- better sorting methods.
 
-- tracking stat changed over days/ games for better up to date stat tracking
+- tracking stats tracking, including changes over recent days/ games.
 
 - add automation to update the team power ranking after games are played
+
+- view todays games and chances.
